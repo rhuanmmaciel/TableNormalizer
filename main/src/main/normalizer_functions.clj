@@ -32,7 +32,7 @@
     (if (empty? table)
       []
       (let [total (count table)]
-        (let [first-row (conj (vec (concat (rest (first table)) [index_column_name])))]
+        (let [first-row (conj (vec (concat (first table) [index_column_name])))]
           (cons first-row (map-indexed (fn [idx row] (conj row (func idx total))) (rest table))))))))
 
 
@@ -107,7 +107,9 @@
     (cons header @unique-data)))
 
 (defn split-multivalued-column [data-csv index delimiter new-column-names]
-  (let [split-data (mapv
+  (let [header (first data-csv)
+        data (rest data-csv)
+        split-data (mapv
                      (fn [row]
                        (let [original-col-value (get row index)
                              delimit-pattern (re-pattern (str delimiter))
@@ -120,29 +122,28 @@
                                  split-values
                                  filled-diff
                                  (drop (inc index) row))
-                         )) (rest data-csv))
-        ]
-    (cons (first data-csv) split-data)
+                         )) data)
+        listed-data(cons (flatten (cons (cons (take index header) new-column-names) (take-last (- (count header) index 1) header))) split-data)]
+    (map #(vec %) listed-data)
     )
   )
 
-
-
-
-
-
-(defn group-columns-by-master [data-csv master-columns group-columns]
-  (let [data-header (first data-csv)
-        data-without-header (rest data-csv)
-        master-indices (map data-header master-columns)
-        group-indices (map data-header group-columns)
-        common-indices (into (set master-indices) group-indices)
-        distinct-groups (map #(select-keys % common-indices) data-without-header)
-        foreign-keys (zipmap distinct-groups (range (count distinct-groups)))
-        updated-data (mapv (fn [row]
-                             (let [group (select-keys row common-indices)
-                                   index (get foreign-keys group)]
-                               (assoc row (first master-indices) index)))
-                           data-without-header)
-        new-header (concat (map #(get data-header %) master-columns) ["Index"])]
-    [(vec new-header) updated-data]))
+(defn split-multivalued-column-foreign-key [data-csv foreign-key-index delimiter multi-value-index]
+  (let [data (rest data-csv)
+        split-data (mapv
+                     (fn [row]
+                       (let [foreign-key-value (get row foreign-key-index)
+                             multi-value-col-value (get row multi-value-index)
+                             delimit-pattern (re-pattern (str delimiter))
+                             split-values (str/split multi-value-col-value delimit-pattern)]
+                         [foreign-key-value split-values]
+                         )) data)
+        second-table (mapcat
+                       (fn [[foreign-key split-values]]
+                         (map (fn [value] [foreign-key value]) split-values))
+                       split-data)
+        first-table (mapv #(vec (concat (take multi-value-index %) (drop (inc multi-value-index) %))) data-csv)
+        ]
+    [first-table second-table]
+    )
+  )
