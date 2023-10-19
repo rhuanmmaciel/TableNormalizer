@@ -71,7 +71,7 @@
 ; Cria uma tabela auxiliar para evitar repetições
 ;(defn -main
 ;  []
-;  (let [tables (func/replace-columns-with-foreign-keys example1 [2 3])]
+;  (let [tables (func/replace-columns-with-foreign-keys example1 [2])]
 ;    (print-csv (first tables))
 ;    (println)
 ;    (print-csv (second tables)))
@@ -94,7 +94,7 @@
 
 
 
-;; Cria novas colunas para atributos multivalorados
+; Cria novas colunas para atributos multivalorados
 ;(defn -main
 ;  []
 ;  (print-csv (func/split-multivalued-column example4 1 "," ["Bairro", "Rua", "CEP"]))
